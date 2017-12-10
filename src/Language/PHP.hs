@@ -79,6 +79,41 @@ data UnOp
     | Ignore -- @
     -- Because why not make `try { foo(); } catch () {}` an operator...
 
+type Ident = String
+
+data Literal
+    = Int Int
+    | Float Float
+    | Bool Bool
+    | SingleQuotes String
+    | DoubleQuotes String
+    -- | HereDoc | NowDoc -- Not even gonna bother for now.
+    | Backticks String
+    | Null
+
+data Var
+    = SimpleVar Ident
+    | VarVar Var -- Please don't, though.
+    | ExprVar Expr -- *Especially* don't.
+
 data Expr
-    = BinOp BinOp Expr Expr
+    -- Values
+    = Var Var
+    | Literal Literal
+    | Const Ident
+
+    -- Operators
+    | BinOp BinOp Expr Expr
     | UnOp UnOp Expr Expr
+
+    -- Compound
+    | Conditional Expr Expr Expr
+    | FunctionCall Expr [Expr]
+    | MethodCall Expr Expr [Expr]
+
+    -- Yes, these are actually expressions.
+    | Require Expr
+    | Include Expr
+    | RequireOnce Expr
+    | IncludeOnce Expr
+
