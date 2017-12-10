@@ -101,8 +101,8 @@ data Expr
     | Const Ident
 
     -- Operators
+    | UnOp UnOp Expr
     | BinOp BinOp Expr Expr
-    | UnOp UnOp Expr Expr
 
     -- Compound
     | Conditional Expr Expr Expr
@@ -123,6 +123,7 @@ type Stmts = [Stmt]
 
 data Stmt
     = Expr Expr
+
     -- Control Flow
     | If Expr Block (Maybe Block) (Maybe [(Expr, Block)])
     | While Expr Block
