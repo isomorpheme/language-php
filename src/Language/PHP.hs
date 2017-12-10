@@ -117,3 +117,28 @@ data Expr
     | RequireOnce Expr
     | IncludeOnce Expr
 
+data Block
+    = Many Stmts
+    | Single Stmt
+
+type Stmts = [Stmt]
+
+data Stmt
+    = Expr Expr
+    -- Control Flow
+    | If Expr Block (Maybe Block) (Maybe [(Expr, Block)])
+    | While Expr Block
+    | DoWhile Block Expr
+    | For Expr Expr Expr Block
+    | ForEach Expr Expr (Maybe Expr) Block
+    | Break (Maybe Expr)
+    | Continue (Maybe Expr)
+    | Switch Expr [(Expr, Stmts)]
+    | Return Expr
+    | Goto Ident -- More restricted than C, but still considered Harmful as Fuck.
+    | Label Ident
+
+    -- Declarations
+    | Declare Ident Literal (Maybe Stmts) -- Pragmas, but for PHP and also useless.
+    | Global [Var]
+
