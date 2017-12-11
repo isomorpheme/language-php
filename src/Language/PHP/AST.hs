@@ -88,10 +88,8 @@ data UnOp
     | Negate -- -
 
     -- Impure Arithmetic
-    | PreIncrement -- ++
-    | PostIncrement
-    | PreDecrement -- --
-    | PostDecrement
+    | Increment -- ++
+    | Decrement -- --
 
     -- Logical
     | Not -- !
