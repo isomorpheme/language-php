@@ -1,5 +1,31 @@
 module Language.PHP.AST where
 
+data Token
+    = TokBinOp BinOp
+    | TokUnOp UnOp
+    | TokLiteral Literal
+    | Comma
+    | Semicolon
+    | LeftParen | RightParen
+    | LeftBracket | RightBracket
+    | LeftBrace | RightBrace
+    | Keyword Keyword
+    | Dollar
+    | Ident Ident
+
+type Keyword = String
+type Ident = String
+
+data Literal
+    = Int Int -- TODO: split into decimal, hexadecimal, etc.
+    | Float Float
+    | Bool Bool
+    | SingleQuotes String
+    | DoubleQuotes String
+    -- | HereDoc | NowDoc -- Not even gonna bother for now.
+    | Backticks String
+    | Null
+
 data BinOp
     -- Arithmetic
     = Add -- +
@@ -77,18 +103,6 @@ data UnOp
     | Ignore -- @
     -- Because why not make `try { foo(); } catch () {}` an operator...
 
-type Ident = String
-
-data Literal
-    = Int Int
-    | Float Float
-    | Bool Bool
-    | SingleQuotes String
-    | DoubleQuotes String
-    -- | HereDoc | NowDoc -- Not even gonna bother for now.
-    | Backticks String
-    | Null
-
 data Var
     = SimpleVar Ident
     | VarVar Var -- Please don't, though.
@@ -101,8 +115,8 @@ data Expr
     | Const Ident
 
     -- Operators
-    | UnOp UnOp Expr
     | BinOp BinOp Expr Expr
+    | UnOp UnOp Expr
 
     -- Compound
     | Conditional Expr Expr Expr
