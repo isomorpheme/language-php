@@ -41,8 +41,19 @@ instance Pretty Literal where
     pretty (Backticks s) = "`" <> PP.text s <> "`"
     pretty (Null) = "NULL"
 
+instance Pretty Var where
+    pretty (SimpleVar i) = "$" <> PP.text i
+    pretty (VarVar v') = "$" <> pretty v'
+    pretty (ExprVar e) = "${" <+> pretty e <+> "}"
+
 instance Pretty Expr where
-    pretty (BinOp op lhs rhs) = PP.parens (pretty lhs <+> pretty op <+> pretty rhs)
-    pretty (UnOp op e) = pretty op <> PP.parens (pretty e)
+    pretty (BinOp op lhs rhs) =
+        PP.parens (pretty lhs <+> pretty op <+> pretty rhs)
+    pretty (UnOp op e) =
+        pretty op <> PP.parens (pretty e)
     pretty (Literal l) = pretty l
+    pretty (Var v) = pretty v
+    pretty (Const i) = PP.text i
+    pretty (Conditional c t f) =
+        pretty c <+> "?" <+> pretty t <+> ":" <+> pretty f
     pretty _ = error "unimplemented"
