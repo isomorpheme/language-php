@@ -12,6 +12,7 @@ data Token
     | Keyword Keyword
     | Dollar
     | Ident Ident
+    deriving (Show)
 
 type Keyword = String
 type Ident = String
@@ -25,6 +26,7 @@ data Literal
     -- | HereDoc | NowDoc -- Not even gonna bother for now.
     | Backticks String
     | Null
+    deriving (Show)
 
 data BinOp
     -- Arithmetic
@@ -81,6 +83,7 @@ data BinOp
 
     -- Types
     | InstanceOf -- instanceof
+    deriving (Show)
 
 data UnOp
     -- Arithmetic
@@ -100,11 +103,13 @@ data UnOp
     -- Error Control
     | Ignore -- @
     -- Because why not make `try { foo(); } catch () {}` an operator...
+    deriving (Show)
 
 data Var
     = SimpleVar Ident
     | VarVar Var -- Please don't, though.
     | ExprVar Expr -- *Especially* don't.
+    deriving (Show)
 
 data Expr
     -- Values
@@ -126,10 +131,12 @@ data Expr
     | Include Expr
     | RequireOnce Expr
     | IncludeOnce Expr
+    deriving (Show)
 
 data Block
     = Many Stmts
     | Single Stmt
+    deriving (Show)
 
 type Stmts = [Stmt]
 
@@ -152,3 +159,4 @@ data Stmt
     -- Declarations
     | Declare Ident Literal (Maybe Stmts) -- Pragmas, but for PHP and also useless.
     | Global [Var]
+    deriving (Show)
