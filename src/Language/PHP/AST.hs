@@ -6,11 +6,11 @@ data Token
     | TokLiteral Literal
     | Comma
     | Semicolon
-    | LeftParen | RightParen
+    | LeftParen   | RightParen
     | LeftBracket | RightBracket
-    | LeftBrace | RightBrace
-    | Keyword Keyword
+    | LeftBrace   | RightBrace
     | Dollar
+    | Keyword Keyword
     | Ident Ident
     deriving (Show)
 
