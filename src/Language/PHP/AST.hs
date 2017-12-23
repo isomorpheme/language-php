@@ -1,19 +1,5 @@
 module Language.PHP.AST where
 
-data Token
-    = TokBinOp BinOp
-    | TokUnOp UnOp
-    | TokLiteral Literal
-    | Comma
-    | Semicolon
-    | LeftParen   | RightParen
-    | LeftBracket | RightBracket
-    | LeftBrace   | RightBrace
-    | Dollar
-    | Keyword Keyword
-    | Ident Ident
-    deriving (Show)
-
 type Keyword = String
 type Ident = String
 

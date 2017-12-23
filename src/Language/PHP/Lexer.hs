@@ -10,6 +10,20 @@ import Language.PHP.AST
 
 type Parser = Parsec Void String
 
+data Token
+    = TokBinOp BinOp
+    | TokUnOp UnOp
+    | TokLiteral Literal
+    | Comma
+    | Semicolon
+    | LeftParen   | RightParen
+    | LeftBracket | RightBracket
+    | LeftBrace   | RightBrace
+    | Dollar
+    | Keyword Keyword
+    | Ident Ident
+    deriving (Show)
+
 tokens :: Parser [Token]
 tokens = many token <* eof
 
