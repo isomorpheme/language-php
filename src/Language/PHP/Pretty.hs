@@ -3,34 +3,30 @@
 module Language.PHP.Pretty where
 
 import Data.Char (toLower)
+import Data.Maybe (fromJust)
 import Data.Semigroup
 
 import Text.PrettyPrint (Doc, (<+>))
 import qualified Text.PrettyPrint as PP
 
 import Language.PHP.AST
+import Language.PHP.AST.Ops
 
 class Pretty p where
     pretty :: p -> PP.Doc
 
+instance Pretty Op where
+    pretty op = PP.text
+        -- We can use 'fromJust' here, because there should be an entry for every
+        -- operator. If not, we've forgotten to fully define an operator!
+        $ fromJust
+        $ lookup op $ concat $ fmap snd $ operators
+
 instance Pretty UnOp where
-    pretty op =
-        case op of
-            Identity -> "+"
-            Negate -> "-"
-            Not -> "!"
+    pretty (MkUnOp op) = pretty op
 
 instance Pretty BinOp where
-    -- TODO: just use a lookup table for this so that parsing is easier too
-    pretty op =
-        case op of
-            Add -> "+"
-            Subtract -> "-"
-            Multiply -> "*"
-            Divide -> "/"
-            Modulo -> "%"
-            Exponentiate -> "**"
-            _ -> error "unimplemented"
+    pretty (MkBinOp op) = pretty op
 
 instance Pretty Literal where
     pretty (Int i) = PP.int i

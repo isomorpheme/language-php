@@ -1,37 +1,16 @@
-module Language.PHP.Lexer where
+module Language.PHP.Parser where
 
 import Data.Void
 
 import Text.Megaparsec hiding (Token, token)
 import Text.Megaparsec.Char
+import qualified Text.Megaparsec.Expr as Expr
 import qualified Text.Megaparsec.Char.Lexer as Lex
 
 import Language.PHP.AST
+import Language.PHP.AST.Ops
 
 type Parser = Parsec Void String
-
-data Token
-    = TokBinOp BinOp
-    | TokUnOp UnOp
-    | TokLiteral Literal
-    | Comma
-    | Semicolon
-    | LeftParen   | RightParen
-    | LeftBracket | RightBracket
-    | LeftBrace   | RightBrace
-    | Dollar
-    | Keyword Keyword
-    | Ident Ident
-    deriving (Show)
-
-tokens :: Parser [Token]
-tokens = many token <* eof
-
-token :: Parser Token
-token = choice
-    [ TokLiteral <$> literal
-    , punctuation
-    ]
 
 spaceConsumer :: Parser ()
 spaceConsumer = Lex.space space1 lineComment blockComment
@@ -53,22 +32,30 @@ symbol' = Lex.symbol' spaceConsumer
 
 -- * Punctuation
 
--- | Parse punctuation, i.e. @,@, @;@, @(@, etc.
-punctuation :: Parser Token
-punctuation = lexeme $ choice
-    [ Comma <$ char ','
-    , Semicolon <$ char ';'
-    , LeftParen <$ char '(', RightParen <$ char ')'
-    , LeftBracket <$ char '[', RightBracket <$ char ']'
-    , LeftBrace <$ char '{', RightBrace <$ char '}'
-    -- TODO: `$` shouln't *always* eat whitespace after it.
-    -- `$ foo` should not parse, but `$ { 'foo' }` should. Yeah...
-    , Dollar <$ char '$'
-    ]
+comma :: Parser String
+comma = symbol ","
+
+semicolon :: Parser String
+semicolon = symbol ";"
+
+dollar :: Parser String
+dollar = symbol "$"
+
+surround :: String -> String -> Parser a -> Parser a
+surround begin end = between (symbol begin) (symbol end)
+
+parens :: Parser a -> Parser a
+parens = surround "(" ")"
+
+brackets :: Parser a -> Parser a
+brackets = surround "[" "]"
+
+braces :: Parser a -> Parser a
+braces = surround "{" "}"
 
 -- * Literals
 
--- | Parse a literal value, i.e. string, bool, etc.
+-- | Parse a literal value, i.e. a string, a bool, etc.
 literal :: Parser Literal
 literal = choice
     -- We use 'try' here because we might have to backtrack if a string of numbers
@@ -117,3 +104,37 @@ backticks = quotes '`'
 
 null' :: Parser String
 null' = symbol' "null"
+
+-- * Identifiers & Keywords
+
+ident :: Parser Ident
+ident = lexeme ((:) <$> letterChar <*> many alphaNumChar)
+
+-- * Expressions
+
+expr :: Parser Expr
+expr = Expr.makeExprParser term ops
+    where
+    ops = fmap (\(fx, ops) -> fmap (makeOperator fx) ops) operators
+    makeOperator fixity (op, sym) =
+        case fixity of
+            InfixLeft -> Expr.InfixL (binOp op <$ symbol sym)
+            InfixRight -> Expr.InfixR (binOp op <$ symbol sym)
+            InfixNone -> Expr.InfixN (binOp op <$ symbol sym)
+            Prefix -> Expr.Prefix (unOp op <$ symbol sym)
+            Postfix -> Expr.Postfix (unOp op <$ symbol sym)
+    binOp = BinOp . MkBinOp
+    unOp = UnOp . MkUnOp
+
+term :: Parser Expr
+term = choice
+    [ parens expr
+    , Var <$> var
+    , Literal <$> literal
+    , Const <$> ident
+    ]
+
+var :: Parser Var
+var = choice
+    [ SimpleVar <$> (dollar *> ident)
+    ]
