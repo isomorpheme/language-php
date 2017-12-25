@@ -1,5 +1,7 @@
 module Language.PHP.Parser where
 
+-- Reference: https://github.com/php/php-langspec/tree/master/spec
+
 import Data.Void
 
 import Text.Megaparsec hiding (Token, token)
@@ -110,6 +112,9 @@ null' = symbol' "null"
 ident :: Parser Ident
 ident = lexeme ((:) <$> letterChar <*> many alphaNumChar)
 
+varIdent :: Parser Ident
+varIdent = char '$' *> ident
+
 -- * Expressions
 
 expr :: Parser Expr
@@ -134,7 +139,10 @@ term = choice
     , Const <$> ident
     ]
 
+-- TODO: all that complicated stuff with namespaces and class members.
 var :: Parser Var
 var = choice
-    [ SimpleVar <$> (dollar *> ident)
+    [ try $ SimpleVar <$> varIdent
+    , try $ VarVar <$> (dollar *> var)
+    , ExprVar <$> (dollar *> braces expr)
     ]
