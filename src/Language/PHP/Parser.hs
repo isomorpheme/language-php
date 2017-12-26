@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 module Language.PHP.Parser where
 
 -- Reference: https://github.com/php/php-langspec/tree/master/spec
@@ -73,7 +75,7 @@ literal = choice
     ]
 
 int :: Parser Int
-int = lexeme $ Lex.signed spaceConsumer $ choice
+int = lexeme $ choice
     [ char '0' *> (Lex.octal <|> char' 'x' *> Lex.hexadecimal)
     , Lex.decimal
     -- TODO: binary literals
@@ -83,7 +85,7 @@ int = lexeme $ Lex.signed spaceConsumer $ choice
 
 float :: Parser Float
 -- TODO: check if @Lex.float@ matches completely with PHP's grammar for floats.
-float = lexeme $ Lex.signed spaceConsumer $ Lex.float
+float = lexeme $ Lex.float
 
 bool :: Parser Bool
 bool = True <$ symbol' "true"
@@ -134,6 +136,7 @@ expr = Expr.makeExprParser term ops
 term :: Parser Expr
 term = choice
     [ parens expr
+    , try $ (\(fx, d, v) -> IncDec fx d v) <$> incDec
     , Var <$> var
     , Literal <$> literal
     , Const <$> ident
@@ -145,4 +148,12 @@ var = choice
     [ try $ SimpleVar <$> varIdent
     , try $ VarVar <$> (dollar *> var)
     , ExprVar <$> (dollar *> braces expr)
+    ]
+
+incDec :: Parser (Fixity, Delta, Var)
+incDec = choice
+    [ (Prefix, Increment, ) <$> (symbol "++" *> var)
+    , (Prefix, Decrement, ) <$> (symbol "--" *> var)
+    , (Postfix, Increment, ) <$> (var <* symbol "++")
+    , (Postfix, Decrement, ) <$> (var <* symbol "--")
     ]

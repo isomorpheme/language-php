@@ -9,6 +9,7 @@ data Fixity
     | InfixNone
     | Prefix
     | Postfix
+    deriving (Eq, Show)
 
 data Op
     --- Binary Operators ---
@@ -72,12 +73,6 @@ data Op
     | Identity -- +
     | Negate -- -
 
-    -- Impure Arithmetic
-    | PreIncrement -- ++
-    | PreDecrement -- --
-    | PostIncrement -- ++
-    | PostDecrement -- --
-
     -- Logical
     | Not -- !
 
@@ -106,15 +101,8 @@ operators =
         [ Exponentiate =: "**"
         ]
     , Prefix >:
-        [ PreIncrement =: "++"
-        , PreDecrement =: "--"
-        , BitwiseNot =: "~"
+        [ BitwiseNot =: "~"
         , Ignore =: "@"
-        ]
-    -- NOTE: The reference doesn't explicitly list the precedence of these.
-    , Postfix >:
-        [ PostIncrement =: "++"
-        , PostDecrement =: "--"
         ]
     , InfixNone >:
         [ InstanceOf =: "instanceof"

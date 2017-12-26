@@ -22,6 +22,9 @@ data Var
     | ExprVar Expr -- *Especially* don't.
     deriving (Show)
 
+data Delta = Increment | Decrement
+    deriving (Eq, Show)
+
 data Expr
     -- Values
     = Var Var
@@ -31,6 +34,7 @@ data Expr
     -- Operators
     | BinOp BinOp Expr Expr
     | UnOp UnOp Expr
+    | IncDec Fixity Delta Var
 
     -- Compound
     | Conditional Expr Expr Expr
