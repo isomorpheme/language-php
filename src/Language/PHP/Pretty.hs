@@ -52,4 +52,13 @@ instance Pretty Expr where
     pretty (Const i) = PP.text i
     pretty (Conditional c t f) =
         pretty c <+> "?" <+> pretty t <+> ":" <+> pretty f
+    pretty (IncDec fixity delta var) =
+        let
+            op = case delta of
+                Increment -> "++"
+                Decrement -> "--"
+        in
+            case fixity of
+                Prefix -> op <> pretty var
+                Postfix -> pretty var <> op
     pretty _ = error "unimplemented"
