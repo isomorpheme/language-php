@@ -165,6 +165,7 @@ data AssignOp
     | MultiplyAssign -- *=
     | DivideAssign -- /=
     | ModuloAssign -- %=
+    | ExpAssign -- **=
     | ConcatAssign -- .=
     | BWAndAssign -- &=
     | BWOrAssign -- |=
@@ -181,6 +182,7 @@ assignOps =
     , MultiplyAssign =: "*="
     , DivideAssign =: "/="
     , ModuloAssign =: "%="
+    , ExpAssign =: "**="
     , ConcatAssign =: ".="
     , BWAndAssign =: "&="
     , BWOrAssign =: "|="
