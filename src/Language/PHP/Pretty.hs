@@ -58,7 +58,12 @@ instance Pretty Expr where
     pretty (Var v) = pretty v
     pretty (Const i) = PP.text i
     pretty (Conditional c t f) =
-        pretty c <+> "?" <+> pretty t <+> ":" <+> pretty f
+        let
+            middle = case t of
+                Just e -> pretty e
+                Nothing -> ""
+        in
+            PP.parens $ pretty c <+> "?" <+> middle <+> ":" <+> pretty f
     pretty (IncDec fixity delta var) =
         let
             op = case delta of

@@ -43,7 +43,7 @@ data Expr
     | Assignment Assignment
 
     -- Compound
-    | Conditional Expr Expr Expr
+    | Conditional Expr (Maybe Expr) Expr
     | FunctionCall Expr [Expr]
     | MethodCall Expr Expr [Expr]
 

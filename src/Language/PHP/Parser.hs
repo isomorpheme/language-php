@@ -120,39 +120,6 @@ varIdent = char '$' *> ident
 
 -- * Expressions
 
-expr :: Parser Expr
-expr = choice
-    [ try $ Assignment <$> assignment
-    , opExpr
-    ]
-
-assignment :: Parser Assignment
-assignment = do
-    lhs <- var
-    op <- assignOp
-    choice
-        [ try $ do
-            guard (op == Assign)
-            ByRef lhs <$> (symbol "&" *> var)
-        , ByValue op lhs <$> expr
-        ]
-    where
-    assignOp = choice $ fmap (\(op, sym) -> op <$ symbol sym) assignOps
-
-opExpr :: Parser Expr
-opExpr = Expr.makeExprParser term ops
-    where
-    ops = fmap (\(fx, ops) -> fmap (makeOperator fx) ops) operators
-    makeOperator fixity (op, sym) =
-        case fixity of
-            InfixLeft -> Expr.InfixL (binOp op <$ symbol sym)
-            InfixRight -> Expr.InfixR (binOp op <$ symbol sym)
-            InfixNone -> Expr.InfixN (binOp op <$ symbol sym)
-            Prefix -> Expr.Prefix (unOp op <$ symbol sym)
-            Postfix -> Expr.Postfix (unOp op <$ symbol sym)
-    binOp = BinOp . MkBinOp
-    unOp = UnOp . MkUnOp
-
 term :: Parser Expr
 term = choice
     [ parens expr
@@ -177,3 +144,48 @@ incDec = choice
     , (Postfix, Increment, ) <$> (var <* symbol "++")
     , (Postfix, Decrement, ) <$> (var <* symbol "--")
     ]
+
+expr :: Parser Expr
+expr = choice
+    [ try $ Assignment <$> assignment
+    , opExpr
+    ]
+
+-- TODO: Error messages are a bit weird here, probably due to backtracking.
+assignment :: Parser Assignment
+assignment = do
+    lhs <- var
+    op <- assignOp
+    choice
+        [ try $ do
+            guard (op == Assign)
+            ByRef lhs <$> (symbol "&" *> var)
+        , ByValue op lhs <$> expr
+        ]
+    where
+    assignOp = choice $ fmap (\(op, sym) -> op <$ symbol sym) assignOps
+
+-- TODO: This is right-associative, but it should be left!
+conditionalExpr :: Parser Expr
+conditionalExpr = do
+    cond <- opExpr
+    choice
+        [ Conditional cond
+            <$> (symbol "?" *> optional conditionalExpr <* symbol ":")
+            <*> conditionalExpr
+        , pure cond
+        ]
+
+opExpr :: Parser Expr
+opExpr = Expr.makeExprParser term ops
+    where
+    ops = fmap (\(fx, ops) -> fmap (makeOperator fx) ops) operators
+    makeOperator fixity (op, sym) =
+        case fixity of
+            InfixLeft -> Expr.InfixL (binOp op <$ symbol sym)
+            InfixRight -> Expr.InfixR (binOp op <$ symbol sym)
+            InfixNone -> Expr.InfixN (binOp op <$ symbol sym)
+            Prefix -> Expr.Prefix (unOp op <$ symbol sym)
+            Postfix -> Expr.Postfix (unOp op <$ symbol sym)
+    binOp = BinOp . MkBinOp
+    unOp = UnOp . MkUnOp
