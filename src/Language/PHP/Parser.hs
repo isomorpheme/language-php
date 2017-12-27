@@ -5,6 +5,7 @@ module Language.PHP.Parser where
 -- Reference: https://github.com/php/php-langspec/tree/master/spec
 
 import Data.Void
+import Control.Monad (guard)
 
 import Text.Megaparsec hiding (Token, token)
 import Text.Megaparsec.Char
@@ -128,11 +129,15 @@ expr = choice
 assignment :: Parser Assignment
 assignment = do
     lhs <- var
-    symbol "="
+    op <- assignOp
     choice
-        [ ByRef lhs <$> (symbol "&" *> var)
-        , ByValue Assign lhs <$> expr
+        [ try $ do
+            guard (op == Assign)
+            ByRef lhs <$> (symbol "&" *> var)
+        , ByValue op lhs <$> expr
         ]
+    where
+    assignOp = choice $ fmap (\(op, sym) -> op <$ symbol sym) assignOps
 
 opExpr :: Parser Expr
 opExpr = Expr.makeExprParser term ops
