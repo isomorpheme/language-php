@@ -120,7 +120,22 @@ varIdent = char '$' *> ident
 -- * Expressions
 
 expr :: Parser Expr
-expr = Expr.makeExprParser term ops
+expr = choice
+    [ try $ Assignment <$> assignment
+    , opExpr
+    ]
+
+assignment :: Parser Assignment
+assignment = do
+    lhs <- var
+    symbol "="
+    choice
+        [ ByRef lhs <$> (symbol "&" *> var)
+        , ByValue Assign lhs <$> expr
+        ]
+
+opExpr :: Parser Expr
+opExpr = Expr.makeExprParser term ops
     where
     ops = fmap (\(fx, ops) -> fmap (makeOperator fx) ops) operators
     makeOperator fixity (op, sym) =

@@ -28,6 +28,9 @@ instance Pretty UnOp where
 instance Pretty BinOp where
     pretty (MkBinOp op) = pretty op
 
+instance Pretty AssignOp where
+    pretty op = PP.text $ fromJust $ lookup op assignOps
+
 instance Pretty Literal where
     pretty (Int i) = PP.int i
     pretty (Float f) = PP.float f
@@ -41,6 +44,10 @@ instance Pretty Var where
     pretty (SimpleVar i) = "$" <> PP.text i
     pretty (VarVar v') = "$" <> pretty v'
     pretty (ExprVar e) = "${" <+> pretty e <+> "}"
+
+instance Pretty Assignment where
+    pretty (ByRef lhs rhs) = pretty lhs <+> "=" <+> ("&" <> pretty rhs)
+    pretty (ByValue op lhs rhs) = pretty lhs <+> pretty op <+> pretty rhs
 
 instance Pretty Expr where
     pretty (BinOp op lhs rhs) =
@@ -61,4 +68,5 @@ instance Pretty Expr where
             case fixity of
                 Prefix -> op <> pretty var
                 Postfix -> pretty var <> op
+    pretty (Assignment ass) = pretty ass
     pretty _ = error "unimplemented"

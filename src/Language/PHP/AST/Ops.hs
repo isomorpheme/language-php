@@ -51,20 +51,6 @@ data Op
     -- String Manipulation
     | Concat -- .
 
-    -- Assignment
-    | Assign -- =
-    | AddAssign -- +=
-    | SubtractAssign -- -=
-    | MultiplyAssign -- *=
-    | DivideAssign -- /=
-    | ModuloAssign -- %=
-    | ConcatAssign -- .=
-    | BWAndAssign -- &=
-    | BWOrAssign -- |=
-    | BWXorAssign -- ^=
-    | LeftShiftAssign -- <<=
-    | RightShiftAssign -- >>=
-
     -- Types
     | InstanceOf -- instanceof
 
@@ -157,20 +143,6 @@ operators =
     , InfixLeft >:
         [ Or =: "||"
         ]
-    , InfixRight >:
-        [ Assign =: "="
-        , AddAssign =: "+="
-        , SubtractAssign =: "-="
-        , MultiplyAssign =: "*="
-        , DivideAssign =: "/="
-        , ConcatAssign =: ".="
-        , ModuloAssign =: "%="
-        , BWAndAssign =: "&="
-        , BWOrAssign =: "|="
-        , BWXorAssign =: "^="
-        , LeftShiftAssign =: "<<="
-        , RightShiftAssign =: ">>="
-        ]
     , InfixLeft >:
         [ AndAlt =: "and"
         ]
@@ -185,3 +157,35 @@ operators =
     -- For notational convenience
     (>:) = (,)
     (=:) = (,)
+
+data AssignOp
+    = Assign -- =
+    | AddAssign -- +=
+    | SubtractAssign -- -=
+    | MultiplyAssign -- *=
+    | DivideAssign -- /=
+    | ModuloAssign -- %=
+    | ConcatAssign -- .=
+    | BWAndAssign -- &=
+    | BWOrAssign -- |=
+    | BWXorAssign -- ^=
+    | LeftShiftAssign -- <<=
+    | RightShiftAssign -- >>=
+    deriving (Eq, Show)
+
+assignOps :: [(AssignOp, String)]
+assignOps =
+    [ Assign =: "="
+    , AddAssign =: "+="
+    , SubtractAssign =: "-="
+    , MultiplyAssign =: "*="
+    , DivideAssign =: "/="
+    , ModuloAssign =: "%="
+    , ConcatAssign =: ".="
+    , BWAndAssign =: "&="
+    , BWOrAssign =: "|="
+    , BWXorAssign =: "^="
+    , LeftShiftAssign =: "<<="
+    , RightShiftAssign =: ">>="
+    ]
+    where (=:) = (,)

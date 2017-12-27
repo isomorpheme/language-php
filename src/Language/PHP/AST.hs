@@ -25,6 +25,11 @@ data Var
 data Delta = Increment | Decrement
     deriving (Eq, Show)
 
+data Assignment
+    = ByValue AssignOp Var Expr
+    | ByRef Var Var
+    deriving (Show)
+
 data Expr
     -- Values
     = Var Var
@@ -35,6 +40,7 @@ data Expr
     | BinOp BinOp Expr Expr
     | UnOp UnOp Expr
     | IncDec Fixity Delta Var
+    | Assignment Assignment
 
     -- Compound
     | Conditional Expr Expr Expr
