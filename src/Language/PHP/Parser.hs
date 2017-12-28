@@ -148,7 +148,7 @@ incDec = choice
 expr :: Parser Expr
 expr = choice
     [ try $ Assignment <$> assignment
-    , opExpr
+    , conditionalExpr
     ]
 
 -- TODO: Error messages are a bit weird here, probably due to backtracking.
@@ -165,16 +165,18 @@ assignment = do
     where
     assignOp = choice $ fmap (\(op, sym) -> op <$ symbol sym) assignOps
 
--- TODO: This is right-associative, but it should be left!
 conditionalExpr :: Parser Expr
-conditionalExpr = do
-    cond <- opExpr
-    choice
-        [ Conditional cond
-            <$> (symbol "?" *> optional conditionalExpr <* symbol ":")
-            <*> conditionalExpr
-        , pure cond
-        ]
+conditionalExpr = Expr.makeExprParser opExpr [[ Expr.InfixL middle ]]
+    where
+    -- The ternary operator in this case can be seen as an ordinary
+    -- left-associative binary operator, except that the operator itself can
+    -- contain an expression. This way, we can let 'makeExprParser' do all the
+    -- heavy lifting.
+    middle = do
+        symbol "?"
+        t <- optional expr
+        symbol ":"
+        pure $ \c f -> Conditional c t f
 
 opExpr :: Parser Expr
 opExpr = Expr.makeExprParser term ops
