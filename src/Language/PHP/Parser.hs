@@ -147,7 +147,29 @@ incDec = choice
     ]
 
 expr :: Parser Expr
-expr = choice
+expr = lowerOpExpr
+
+-- | Parse an operator with lower precedence than assignment.
+-- |
+-- | Specifically, these are the @and@, @xor@, and @or@ operators.
+lowerOpExpr :: Parser Expr
+lowerOpExpr = Expr.makeExprParser assignmentExpr ops
+    where
+    -- TODO: DRY!
+    ops = fmap (\(fx, ops) -> fmap (makeOperator fx) ops) lowerOperators
+    makeOperator fixity (op, sym) =
+        case fixity of
+            InfixLeft -> Expr.InfixL (binOp op <$ symbol sym)
+            InfixRight -> Expr.InfixR (binOp op <$ symbol sym)
+            InfixNone -> Expr.InfixN (binOp op <$ symbol sym)
+            Prefix -> Expr.Prefix (unOp op <$ symbol sym)
+            Postfix -> Expr.Postfix (unOp op <$ symbol sym)
+    binOp = BinOp . MkBinOp
+    unOp = UnOp . MkUnOp
+
+
+assignmentExpr :: Parser Expr
+assignmentExpr = choice
     [ try $ Assignment <$> assignment
     , conditionalExpr
     ]
@@ -161,28 +183,30 @@ assignment = do
         [ try $ do
             guard (op == Assign)
             ByRef lhs <$> (symbol "&" *> var)
-        , ByValue op lhs <$> expr
+        , ByValue op lhs <$> assignmentExpr
         ]
     where
     assignOp = choice $ fmap (\(op, sym) -> op <$ symbol sym) assignOps
 
+-- | Parse a conditional expression, i.e. the @:?@ operator.
 conditionalExpr :: Parser Expr
-conditionalExpr = Expr.makeExprParser opExpr [[ Expr.InfixL middle ]]
+conditionalExpr = Expr.makeExprParser higherOpExpr [[ Expr.InfixL middle ]]
     where
     -- The ternary operator in this case can be seen as an ordinary
     -- left-associative binary operator, except that the operator itself can
-    -- contain an expression. This way, we can let 'makeExprParser' do all the
-    -- heavy lifting.
+    -- contain an expression in the middle. So we can just let 'makeExprParser'
+    -- do all the heavy lifting.
     middle = do
         symbol "?"
         t <- optional expr
         symbol ":"
         pure $ \c f -> Conditional c t f
 
-opExpr :: Parser Expr
-opExpr = Expr.makeExprParser term ops
+-- | Parse an operator with a higher precedence than @:?@ and assignment.
+higherOpExpr :: Parser Expr
+higherOpExpr = Expr.makeExprParser term ops
     where
-    ops = fmap (\(fx, ops) -> fmap (makeOperator fx) ops) operators
+    ops = fmap (\(fx, ops) -> fmap (makeOperator fx) ops) higherOperators
     makeOperator fixity (op, sym) =
         case fixity of
             InfixLeft -> Expr.InfixL (binOp op <$ symbol sym)

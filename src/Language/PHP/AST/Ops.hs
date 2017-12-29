@@ -1,15 +1,7 @@
 module Language.PHP.AST.Ops where
 
 import Data.List (union)
-
--- | The fixity of an operator.
-data Fixity
-    = InfixLeft
-    | InfixRight
-    | InfixNone
-    | Prefix
-    | Postfix
-    deriving (Eq, Show)
+import Data.Semigroup ((<>))
 
 data Op
     --- Binary Operators ---
@@ -27,6 +19,9 @@ data Op
     | Xor -- xor
     | AndAlt -- and
     | OrAlt -- or
+
+    -- Coalesce
+    -- | Coalesce -- ?? -- PHP 7 only
 
     -- Comparison
     | Equal -- ==
@@ -70,19 +65,39 @@ data Op
     -- Because why not make `try { foo(); } catch () {}` an operator...
     deriving (Eq, Show)
 
--- | A binary operation, e.g. @+@ or @+=@.
+-- | A binary operator, e.g. @+@ or @+=@.
 newtype BinOp = MkBinOp { unBinOp :: Op }
     deriving (Eq, Show)
 
--- | A unary operation, e.g. @!@ or @~@.
+-- | A unary operator, e.g. @!@ or @~@.
 newtype UnOp = MkUnOp { unUnOp :: Op }
     deriving (Eq, Show)
 
--- | Every operator, grouped by precedence and fixity.
+-- * Operator Tables
+
+-- | The fixity of an operator.
+data Fixity
+    = InfixLeft
+    | InfixRight
+    | InfixNone
+    | Prefix
+    | Postfix
+    deriving (Eq, Show)
+
+type OperatorTable = [(Fixity, [(Op, String)])]
+
+-- | For notational convenience.
+(>:) = (,)
+
+-- | For notational convenience.
+(=:) = (,)
+
+-- | All operators with higher precedence than @:?@ and assignment.
 -- |
--- | Based on http://php.net/manual/en/language.operators.precedence.php
-operators :: [(Fixity, [(Op, String)])]
-operators =
+-- | These are broken up because we cannot parse both conditional expressions
+-- | and assignments as usual operators.
+higherOperators :: OperatorTable
+higherOperators =
     [ InfixRight >:
         [ Exponentiate =: "**"
         ]
@@ -143,7 +158,12 @@ operators =
     , InfixLeft >:
         [ Or =: "||"
         ]
-    , InfixLeft >:
+    ]
+
+-- | All operators with lower precedence than @:?@ and assignment.
+lowerOperators :: OperatorTable
+lowerOperators =
+    [ InfixLeft >:
         [ AndAlt =: "and"
         ]
     , InfixLeft >:
@@ -153,10 +173,12 @@ operators =
         [ OrAlt =: "or"
         ]
     ]
-    where
-    -- For notational convenience
-    (>:) = (,)
-    (=:) = (,)
+
+-- | Every operator, grouped by precedence and fixity.
+-- |
+-- | Based on http://php.net/manual/en/language.operators.precedence.php
+operators :: OperatorTable
+operators = higherOperators <> lowerOperators
 
 data AssignOp
     = Assign -- =
@@ -190,4 +212,3 @@ assignOps =
     , LeftShiftAssign =: "<<="
     , RightShiftAssign =: ">>="
     ]
-    where (=:) = (,)
