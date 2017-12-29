@@ -113,7 +113,7 @@ null' = symbol' "null"
 -- * Identifiers & Keywords
 
 ident :: Parser Ident
-ident = lexeme ((:) <$> letterChar <*> many alphaNumChar)
+ident = lexeme ((:) <$> letterChar <*> many alphaNumChar) <?> "identifier"
 
 varIdent :: Parser Ident
 varIdent = char '$' *> ident
@@ -124,12 +124,12 @@ term :: Parser Expr
 term = choice
     [ parens expr
     , try $ (\(fx, d, v) -> IncDec fx d v) <$> incDec
-    , Var <$> var
-    , Literal <$> literal
-    , Const <$> ident
+    , Var <$> var <?> "variable"
+    , Literal <$> literal <?> "literal value"
+    , Const <$> ident <?> "constant"
     ]
 
--- TODO: all that complicated stuff with namespaces and class members.
+-- TODO: All that complicated stuff with namespaces and class members.
 var :: Parser Var
 var = choice
     [ try $ SimpleVar <$> varIdent
@@ -137,6 +137,7 @@ var = choice
     , ExprVar <$> (dollar *> braces expr)
     ]
 
+-- TODO: The prefix operators fail to parse.
 incDec :: Parser (Fixity, Delta, Var)
 incDec = choice
     [ (Prefix, Increment, ) <$> (symbol "++" *> var)
