@@ -102,7 +102,9 @@ higherOperators =
         [ Exponentiate =: "**"
         ]
     , Prefix >:
-        [ BitwiseNot =: "~"
+        [ Identity =: "+"
+        , Negate =: "-"
+        , BitwiseNot =: "~"
         , Ignore =: "@"
         ]
     , InfixNone >:
@@ -120,11 +122,6 @@ higherOperators =
         [ Add =: "+"
         , Subtract =: "-"
         , Concat =: "."
-        ]
-    -- NOTE: The reference doesn't specify the precedence of these.
-    , Prefix >:
-        [ Identity =: "+"
-        , Negate =: "-"
         ]
     , InfixLeft >:
         [ ShiftLeft =: "<<"
