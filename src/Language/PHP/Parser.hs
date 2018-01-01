@@ -137,12 +137,11 @@ var = choice
     , ExprVar <$> (dollar *> braces expr)
     ]
 
--- TODO: The prefix operators fail to parse.
 incDec :: Parser (Fixity, Delta, Var)
 incDec = choice
     [ (Prefix, Increment, ) <$> (symbol "++" *> var)
     , (Prefix, Decrement, ) <$> (symbol "--" *> var)
-    , (Postfix, Increment, ) <$> (var <* symbol "++")
+    , try $ (Postfix, Increment, ) <$> (var <* symbol "++")
     , (Postfix, Decrement, ) <$> (var <* symbol "--")
     ]
 
@@ -153,20 +152,7 @@ expr = lowerOpExpr
 -- |
 -- | Specifically, these are the @and@, @xor@, and @or@ operators.
 lowerOpExpr :: Parser Expr
-lowerOpExpr = Expr.makeExprParser assignmentExpr ops
-    where
-    -- TODO: DRY!
-    ops = fmap (\(fx, ops) -> fmap (makeOperator fx) ops) lowerOperators
-    makeOperator fixity (op, sym) =
-        case fixity of
-            InfixLeft -> Expr.InfixL (binOp op <$ symbol sym)
-            InfixRight -> Expr.InfixR (binOp op <$ symbol sym)
-            InfixNone -> Expr.InfixN (binOp op <$ symbol sym)
-            Prefix -> Expr.Prefix (unOp op <$ symbol sym)
-            Postfix -> Expr.Postfix (unOp op <$ symbol sym)
-    binOp = BinOp . MkBinOp
-    unOp = UnOp . MkUnOp
-
+lowerOpExpr = Expr.makeExprParser assignmentExpr $ makeOps lowerOperators
 
 assignmentExpr :: Parser Expr
 assignmentExpr = choice
@@ -204,15 +190,20 @@ conditionalExpr = Expr.makeExprParser higherOpExpr [[ Expr.InfixL middle ]]
 
 -- | Parse an operator with a higher precedence than @:?@ and assignment.
 higherOpExpr :: Parser Expr
-higherOpExpr = Expr.makeExprParser term ops
+higherOpExpr = Expr.makeExprParser term $ makeOps higherOperators
+
+makeOps :: OperatorTable -> [[Expr.Operator Parser Expr]]
+makeOps = fmap $ \(fx, ops) -> fmap (makeOperator fx) ops
     where
-    ops = fmap (\(fx, ops) -> fmap (makeOperator fx) ops) higherOperators
+    -- TODO: Make this whole thing less messy
     makeOperator fixity (op, sym) =
         case fixity of
-            InfixLeft -> Expr.InfixL (binOp op <$ symbol sym)
-            InfixRight -> Expr.InfixR (binOp op <$ symbol sym)
-            InfixNone -> Expr.InfixN (binOp op <$ symbol sym)
-            Prefix -> Expr.Prefix (unOp op <$ symbol sym)
-            Postfix -> Expr.Postfix (unOp op <$ symbol sym)
-    binOp = BinOp . MkBinOp
-    unOp = UnOp . MkUnOp
+            InfixLeft -> Expr.InfixL $ binOp op sym
+            InfixRight -> Expr.InfixR $ binOp op sym
+            InfixNone -> Expr.InfixN $ binOp op sym
+            Prefix -> Expr.Prefix $ unOp op sym
+            Postfix -> Expr.Postfix $ unOp op sym
+    binOp op sym = (BinOp $ MkBinOp $ op) <$ symbol sym
+    unOp op sym = (UnOp $ MkUnOp $ op) <$ trySym sym
+    trySym s = lexeme $ try
+        $ string s <* notFollowedBy (satisfy (`elem` ['+', '-']))
