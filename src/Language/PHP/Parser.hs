@@ -24,7 +24,7 @@ instance Show LiteralShow where
     show (Lit s) = s
 
 parsePretty :: String -> Either LiteralShow Expr
-parsePretty = first (Lit . parseErrorPretty) . runParser expr ""
+parsePretty = first (Lit . parseErrorPretty) . runParser (expr <* eof) ""
 
 type Parser = Parsec Void String
 
