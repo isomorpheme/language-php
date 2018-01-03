@@ -214,7 +214,7 @@ makeOps = fmap $ \(fx, ops) -> fmap (makeOperator fx) ops
             InfixNone -> Expr.InfixN $ binOp op sym
             Prefix -> Expr.Prefix $ unOp op sym
             Postfix -> Expr.Postfix $ unOp op sym
-    binOp op sym = (BinOp $ MkBinOp $ op) <$ symbol sym
-    unOp op sym = (UnOp $ MkUnOp $ op) <$ trySym sym
+    binOp op sym = (BinOp $ MkBinOp $ op) <$ trySym sym
+    unOp op sym = (UnOp $ MkUnOp $ op) <$ symbol sym
     trySym s = lexeme $ try
-        $ string s <* notFollowedBy (satisfy (`elem` ['+', '-']))
+        $ string s <* notFollowedBy punctuationChar
