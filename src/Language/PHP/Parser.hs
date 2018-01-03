@@ -10,7 +10,6 @@ import Control.Monad (guard)
 
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import Text.Megaparsec.Error (parseErrorPretty)
 import qualified Text.Megaparsec.Expr as Expr
 import qualified Text.Megaparsec.Char.Lexer as Lex
 
@@ -78,7 +77,7 @@ literal = choice
     -- We use 'try' here because we might have to backtrack if a string of numbers
     -- turns out to be an integer, not a float.
     -- TODO: left-factor this maybe?
-    [ Float <$> try float
+    [ try $ Float <$> float
     , Int <$> int
     , Bool <$> bool
     , SingleQuotes <$> singleQuotes
@@ -87,9 +86,9 @@ literal = choice
     , Null <$ null'
     ]
 
-int :: Parser Int
+int :: Parser Word
 int = lexeme $ choice
-    [ char '0' *> (Lex.octal <|> char' 'x' *> Lex.hexadecimal)
+    [ try $ char '0' *> (Lex.octal <|> char' 'x' *> Lex.hexadecimal)
     , Lex.decimal
     -- TODO: binary literals
     -- char '0' *> char 'b' *> some (satisfy (`member` "01"))

@@ -19,8 +19,8 @@ genConstIdent = Gen.string (Range.singleton 5) Gen.upper
 
 genLiteral :: MonadGen m => m Literal
 genLiteral = Gen.choice
-    [ Int <$> Gen.int Range.exponentialBounded
-    , Float <$> Gen.float (Range.exponentialFloatFrom 0 (-512) 512)
+    [ Int <$> Gen.word Range.exponentialBounded
+    , Float <$> Gen.float (Range.exponentialFloat 0 1024)
     , Bool <$> Gen.bool
     , SingleQuotes <$> genString
     , DoubleQuotes <$> genString

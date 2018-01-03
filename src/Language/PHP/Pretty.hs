@@ -35,7 +35,7 @@ instance Pretty AssignOp where
     pretty op = PP.text $ fromJust $ lookup op assignOps
 
 instance Pretty Literal where
-    pretty (Int i) = PP.int i
+    pretty (Int i) = PP.text $ show i
     pretty (Float f) = PP.float f
     pretty (Bool b) = PP.text $ map toLower $ show b
     pretty (SingleQuotes s) = PP.quotes $ PP.text s

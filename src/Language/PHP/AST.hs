@@ -6,7 +6,7 @@ type Keyword = String
 type Ident = String
 
 data Literal
-    = Int Int -- TODO: split into decimal, hexadecimal, etc.
+    = Int Word -- TODO: split into decimal, hexadecimal, etc.
     | Float Float
     | Bool Bool
     | SingleQuotes String
