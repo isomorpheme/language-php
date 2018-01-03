@@ -12,6 +12,9 @@ import qualified Text.PrettyPrint as PP
 import Language.PHP.AST
 import Language.PHP.AST.Ops
 
+toString :: Pretty a => a -> String
+toString = PP.render . pretty
+
 class Pretty p where
     pretty :: p -> PP.Doc
 

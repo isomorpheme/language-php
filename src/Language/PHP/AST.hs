@@ -20,7 +20,7 @@ data Var
     = SimpleVar Ident
     | VarVar Var -- Please don't, though.
     | ExprVar Expr -- *Especially* don't.
-    deriving (Show)
+    deriving (Eq, Show)
 
 data Delta = Increment | Decrement
     deriving (Bounded, Enum, Eq, Show)
@@ -28,7 +28,7 @@ data Delta = Increment | Decrement
 data Assignment
     = ByValue AssignOp Var Expr
     | ByRef Var Var
-    deriving (Show)
+    deriving (Eq, Show)
 
 data Expr
     -- Values
@@ -44,7 +44,7 @@ data Expr
 
     -- Compound
     | Conditional Expr (Maybe Expr) Expr
-    deriving (Show)
+    deriving (Eq, Show)
 
 data Block
     = Many Stmts

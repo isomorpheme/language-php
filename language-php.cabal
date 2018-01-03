@@ -28,6 +28,7 @@ library
       Language.PHP
     , Language.PHP.AST
     , Language.PHP.AST.Ops
+    , Language.PHP.Parser
     , Language.PHP.Pretty
 
 test-suite test

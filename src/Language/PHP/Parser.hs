@@ -4,16 +4,28 @@ module Language.PHP.Parser where
 
 -- Reference: https://github.com/php/php-langspec/tree/master/spec
 
+import Data.Bifunctor
 import Data.Void
 import Control.Monad (guard)
 
-import Text.Megaparsec hiding (Token, token)
+import Text.Megaparsec
 import Text.Megaparsec.Char
+import Text.Megaparsec.Error (parseErrorPretty)
 import qualified Text.Megaparsec.Expr as Expr
 import qualified Text.Megaparsec.Char.Lexer as Lex
 
 import Language.PHP.AST
 import Language.PHP.AST.Ops
+
+-- TODO: Not sure if this is necessary, but at least put it somewhere else.
+newtype LiteralShow = Lit String
+    deriving (Eq)
+
+instance Show LiteralShow where
+    show (Lit s) = s
+
+parsePretty :: String -> Either LiteralShow Expr
+parsePretty = first (Lit . parseErrorPretty) . runParser expr ""
 
 type Parser = Parsec Void String
 
