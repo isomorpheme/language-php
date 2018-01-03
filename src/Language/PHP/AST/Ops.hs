@@ -63,7 +63,49 @@ data Op
     -- Error Control
     | Ignore -- @
     -- Because why not make `try { foo(); } catch () {}` an operator...
-    deriving (Eq, Show)
+    deriving (Bounded, Enum, Eq, Show)
+
+binOps :: [Op]
+binOps =
+    [ Add
+    , Subtract
+    , Multiply
+    , Divide
+    , Modulo
+    , Exponentiate
+    , And
+    , Or
+    , Xor
+    , AndAlt
+    , OrAlt
+    -- , Coalesce -- PHP 7 only
+    , Equal
+    , Identical
+    , NotEqual
+    , NotEqualAlt
+    , NotIdentical
+    , LessThan
+    , GreaterThan
+    , LessThanEqual
+    , GreaterThanEqual
+    -- , Spaceship
+    , BitwiseAnd
+    , BitwiseOr
+    , BitwiseXor
+    , ShiftLeft
+    , ShiftRight
+    , Concat
+    , InstanceOf
+    ]
+
+unOps :: [Op]
+unOps =
+    [ Identity
+    , Negate
+    , Not
+    , BitwiseNot
+    , Ignore
+    ]
 
 -- | A binary operator, e.g. @+@ or @+=@.
 newtype BinOp = MkBinOp { unBinOp :: Op }
@@ -82,7 +124,7 @@ data Fixity
     | InfixNone
     | Prefix
     | Postfix
-    deriving (Eq, Show)
+    deriving (Bounded, Enum, Eq, Show)
 
 type OperatorTable = [(Fixity, [(Op, String)])]
 
@@ -191,7 +233,7 @@ data AssignOp
     | BWXorAssign -- ^=
     | LeftShiftAssign -- <<=
     | RightShiftAssign -- >>=
-    deriving (Eq, Show)
+    deriving (Bounded, Enum, Eq, Show)
 
 assignOps :: [(AssignOp, String)]
 assignOps =

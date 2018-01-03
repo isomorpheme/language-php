@@ -14,7 +14,7 @@ data Literal
     -- | HereDoc | NowDoc -- Not even gonna bother for now.
     | Backticks String
     | Null
-    deriving (Show)
+    deriving (Eq, Show)
 
 data Var
     = SimpleVar Ident
@@ -23,7 +23,7 @@ data Var
     deriving (Show)
 
 data Delta = Increment | Decrement
-    deriving (Eq, Show)
+    deriving (Bounded, Enum, Eq, Show)
 
 data Assignment
     = ByValue AssignOp Var Expr
@@ -44,14 +44,6 @@ data Expr
 
     -- Compound
     | Conditional Expr (Maybe Expr) Expr
-    | FunctionCall Expr [Expr]
-    | MethodCall Expr Expr [Expr]
-
-    -- Yes, these are actually expressions.
-    | Require Expr
-    | Include Expr
-    | RequireOnce Expr
-    | IncludeOnce Expr
     deriving (Show)
 
 data Block
