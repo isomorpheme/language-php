@@ -48,9 +48,8 @@ symbol' = Lex.symbol' spaceConsumer
 
 operator :: String -> Parser String
 operator s = lexeme $ try $ string s <* notFollowedBy operatorChar
-    -- TODO: This definition is incomplete, but might be sufficient.
     where
-    operatorChar = oneOf ['+', '-']
+    operatorChar = oneOf operatorChars
 
 -- * Punctuation
 

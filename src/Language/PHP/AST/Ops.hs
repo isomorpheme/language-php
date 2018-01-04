@@ -2,6 +2,8 @@ module Language.PHP.AST.Ops where
 
 import Data.List (union)
 import Data.Semigroup ((<>))
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 data Op
     --- Binary Operators ---
@@ -65,6 +67,7 @@ data Op
     -- Because why not make `try { foo(); } catch () {}` an operator...
     deriving (Bounded, Enum, Eq, Show)
 
+-- TODO: We can just determine these from 'operators'
 binOps :: [Op]
 binOps =
     [ Add
@@ -218,6 +221,12 @@ lowerOperators =
 -- | Based on http://php.net/manual/en/language.operators.precedence.php
 operators :: OperatorTable
 operators = higherOperators <> lowerOperators
+
+operatorChars :: Set Char
+operatorChars = Set.union opChars assignChars
+    where
+    opChars = Set.fromList $ operators >>= snd >>= snd
+    assignChars = Set.fromList $ assignOps >>= snd
 
 data AssignOp
     = Assign -- =
