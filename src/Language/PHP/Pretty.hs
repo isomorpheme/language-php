@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Language.PHP.Pretty where
@@ -49,8 +50,9 @@ instance Pretty Var where
     pretty (ExprVar e) = "${" <+> pretty e <+> "}"
 
 instance Pretty Assignment where
-    pretty (ByRef lhs rhs) = pretty lhs <+> "=" <+> ("&" <> pretty rhs)
-    pretty (ByValue op lhs rhs) = pretty lhs <+> pretty op <+> pretty rhs
+    pretty = PP.parens . \case
+        ByRef lhs rhs -> pretty lhs <+> "=" <+> ("&" <> pretty rhs)
+        ByValue op lhs rhs -> pretty lhs <+> pretty op <+> pretty rhs
 
 instance Pretty Expr where
     pretty (BinOp op lhs rhs) =
