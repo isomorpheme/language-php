@@ -46,6 +46,12 @@ symbol = Lex.symbol spaceConsumer
 symbol' :: String -> Parser String
 symbol' = Lex.symbol' spaceConsumer
 
+operator :: String -> Parser String
+operator s = lexeme $ try $ string s <* notFollowedBy operatorChar
+    -- TODO: This definition is incomplete, but might be sufficient.
+    where
+    operatorChar = oneOf ['+', '-']
+
 -- * Punctuation
 
 comma :: Parser String
@@ -150,7 +156,7 @@ var = choice
 
 incDec :: Parser (Fixity, Delta, Var)
 incDec = choice
-    [ (Prefix, Increment, ) <$> (symbol "++" *> var)
+    [ try $ (Prefix, Increment, ) <$> (symbol "++" *> var)
     , (Prefix, Decrement, ) <$> (symbol "--" *> var)
     , try $ (Postfix, Increment, ) <$> (var <* symbol "++")
     , (Postfix, Decrement, ) <$> (var <* symbol "--")
@@ -183,7 +189,7 @@ assignment = do
         , ByValue op lhs <$> assignmentExpr
         ]
     where
-    assignOp = choice $ fmap (\(op, sym) -> op <$ symbol sym) assignOps
+    assignOp = choice $ fmap (\(op, sym) -> op <$ operator sym) assignOps
 
 -- | Parse a conditional expression, i.e. the @:?@ operator.
 conditionalExpr :: Parser Expr
@@ -214,7 +220,5 @@ makeOps = fmap $ \(fx, ops) -> fmap (makeOperator fx) ops
             InfixNone -> Expr.InfixN $ binOp op sym
             Prefix -> Expr.Prefix $ unOp op sym
             Postfix -> Expr.Postfix $ unOp op sym
-    binOp op sym = (BinOp $ MkBinOp $ op) <$ trySym sym
-    unOp op sym = (UnOp $ MkUnOp $ op) <$ symbol sym
-    trySym s = lexeme $ try
-        $ string s <* notFollowedBy punctuationChar
+    binOp op sym = (BinOp $ MkBinOp $ op) <$ operator sym
+    unOp op sym = (UnOp $ MkUnOp $ op) <$ operator sym
