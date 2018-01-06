@@ -1,18 +1,24 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Language.PHP.Pretty where
 
 import Data.Char (toLower)
+import Data.Foldable (fold)
+import Data.Function (on)
 import Data.Maybe (fromJust)
 import Data.Semigroup
 import qualified Data.Text as T
 
-import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc hiding (Doc)
+import qualified Data.Text.Prettyprint.Doc as PP
 import Data.Text.Prettyprint.Doc.Render.Text
 
 import Language.PHP.AST
 import Language.PHP.AST.Ops
+
+type Doc = forall ann. PP.Doc ann
 
 toString :: Pretty a => a -> String
 toString = T.unpack . renderStrict . layoutCompact . pretty
@@ -44,28 +50,115 @@ instance Pretty Var where
     pretty (ExprVar e) = "${" <+> pretty e <+> "}"
 
 instance Pretty Assignment where
-    pretty = parens . \case
-        ByRef lhs rhs -> pretty lhs <+> "=" <+> ("&" <> pretty rhs)
-        ByValue op lhs rhs -> pretty lhs <+> pretty op <+> pretty rhs
+    pretty = \case
+        ByRef lhs rhs -> hsep [pretty lhs, "=", "&" <> pretty rhs]
+        ByValue op lhs rhs ->
+            let
+                -- We (ab)use the 'Foldable' instance of 'Maybe' here, so that
+                -- @Nothing@ maps to @False@, and @Just b@ to @b@.
+                lower = or $ do
+                    op <- operatorOf rhs
+                    pure $ any (\(op', _, _) -> op == op') $ concat lowerOperators
+            in
+                hsep [pretty lhs, pretty op, parenthesize lower $ pretty rhs]
+
+-- * Prettifying Expressions
+
+-- | Parts of this section are based on Norman Ramsey, "Unparsing Expressions
+-- With Prefix and Postfix Operators"
+-- (https://pdfs.semanticscholar.org/6a07/5485596524c5b69e4a13165d5bb911498bf5.pdf)
+
+-- | Parenthesize a 'Doc' only if a condition holds.
+parenthesize :: Bool -> Doc -> Doc
+parenthesize cond doc = if cond then parens doc else doc
+
+-- | Check whether a nesting of operators needs parentheses to disambiguate.
+-- |
+-- | The first operator is the 'inner' operator, e.g. the @+@ in the expression
+-- | @(1 + 2) * 3@, and the second is the 'outer' one, e.g. @*@.
+-- |
+-- | The associativity indicates whether we are recursing into the left hand
+-- | side or the right hand side of a binary operator, or that the operator is
+-- | unary.
+needsParens :: Op -> Op -> Associativity -> Bool
+-- It is easier to check whether parens would be redundant, so we check
+-- the negation.
+needsParens inner outer side = not $
+    if precedence inner > precedence outer
+    -- If the inner operator has greater precedence than the outer
+    -- operator, we definitely don't need parens.
+    then True
+    -- Otherwise, it depends on the fixity of the inner operator, and
+    -- on what side of the outer operator we are.
+    else case (fixity inner, side) of
+        -- When there is a unary operator inbetween its subexpression
+        -- and the outer operator, parens are redundant.
+        -- E.g., `1 + -2`. (Note: there actually are no postfix unops.)
+        (Postfix, AssocLeft) -> True
+        (Prefix, AssocRight) -> True
+
+        -- Chaining equally precedent operators with the same
+        -- associativity does not need parens.
+        -- E.g. `1 + 2 - 3` = `(1 + 2) - 3`.
+        (InfixLeft, AssocLeft) ->
+            precedence inner == precedence outer
+            && fixity outer == InfixLeft
+        -- E.g. `1 & 2 & 3` = `1 & (2 & 3)`.
+        (InfixRight, AssocRight) ->
+            precedence inner == precedence outer
+            && fixity outer == InfixRight
+
+        -- E.g. `@-2`.
+        --(_, AssocNone) -> fixity inner == fixity outer
+
+        -- We need parens in any other case.
+        _ -> False
+
+prettyExpr :: Expr -> Doc
+prettyExpr (Literal l) = pretty l
+prettyExpr (Var v) = pretty v
+prettyExpr (Const i) = pretty i
+prettyExpr (BinOp (MkBinOp op) lhs rhs) =
+    hsep [prettyPrec op AssocLeft lhs, pretty op, prettyPrec op AssocLeft rhs]
+prettyExpr (UnOp (MkUnOp op) expr) =
+    hcat [pretty op, prettyPrec op AssocNone expr]
+prettyExpr (IncDec fixity delta var) =
+    let
+        op = case delta of
+            Increment -> "++"
+            Decrement -> "--"
+    in
+        case fixity of
+            Prefix -> op <> pretty var
+            Postfix -> pretty var <> op
+prettyExpr (Assignment ass) = pretty ass
+prettyExpr (Conditional c t f) =
+    parens $ hsep [subExpr c, "?", fold $ subExpr <$> t, ":", subExpr f]
+    where
+    subExpr expr =
+        let
+            -- We (ab)use the 'Foldable' instance of 'Maybe' here, so that
+            -- @Nothing@ maps to @False@, and @Just b@ to @b@.
+            lower = or $ do
+                op <- operatorOf expr
+                pure $ any (\(op', _, _) -> op == op') $ concat lowerOperators
+        in
+            parenthesize lower $ prettyExpr expr
+
+prettyExpr _ = error "unimplemented"
+
+prettyPrec :: Op -> Associativity -> Expr -> Doc
+prettyPrec prev assoc = \case
+    BinOp (MkBinOp op) lhs rhs ->
+        parenthesize (needsParens prev op assoc) $
+            hsep [prettyPrec op AssocLeft lhs, pretty op, prettyPrec op AssocLeft rhs]
+    UnOp (MkUnOp op) expr ->
+        parenthesize (needsParens prev op assoc) $
+            -- Note: we always prettify as a prefix operator, because
+            -- there are no 'plain' postfix unops; `++` and `--` only
+            -- work on variables, and are a different type.
+            hcat [pretty op, prettyPrec op AssocNone expr]
+    expr -> prettyExpr expr
 
 instance Pretty Expr where
-    pretty (BinOp op lhs rhs) =
-        parens (pretty lhs <+> pretty op <+> pretty rhs)
-    pretty (UnOp op e) =
-        pretty op <> parens (pretty e)
-    pretty (Literal l) = pretty l
-    pretty (Var v) = pretty v
-    pretty (Const i) = pretty i
-    pretty (IncDec fixity delta var) =
-        let
-            op = case delta of
-                Increment -> "++"
-                Decrement -> "--"
-        in
-            case fixity of
-                Prefix -> op <> pretty var
-                Postfix -> pretty var <> op
-    pretty (Assignment ass) = pretty ass
-    pretty (Conditional c t f) =
-        parens $ pretty c <+> "?" <+> pretty t <+> ":" <+> pretty f
-    pretty _ = error "unimplemented"
+    pretty = prettyExpr

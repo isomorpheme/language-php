@@ -46,6 +46,12 @@ data Expr
     | Conditional Expr (Maybe Expr) Expr
     deriving (Eq, Show)
 
+-- | Give the operator used in an expression, if present.
+operatorOf :: Expr -> Maybe Op
+operatorOf (BinOp (MkBinOp op) _ _) = Just op
+operatorOf (UnOp (MkUnOp op) _) = Just op
+operatorOf _ = Nothing
+
 data Block
     = Many Stmts
     | Single Stmt

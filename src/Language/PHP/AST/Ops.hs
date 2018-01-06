@@ -1,7 +1,9 @@
 module Language.PHP.AST.Ops where
 
+import Data.Foldable (foldMap)
 import Data.List (find, union)
 import Data.Maybe (fromJust)
+import Data.Monoid (First(..))
 import Data.Semigroup ((<>))
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -238,6 +240,8 @@ operators :: OperatorTable
 operators = higherOperators <> lowerOperators
 
 -- | Every character which appears in an operator at least once.
+-- TODO: Exclude `instanceof` from this, because otherwise e.g. `-foo` won't
+-- parse. (Which is probably somewhat rare, but still.)
 operatorChars :: Set Char
 operatorChars = Set.union opChars assignChars
     where
@@ -254,9 +258,20 @@ description op = fromJust $ find (\(op', _, _) -> op == op') $ concat operators
 fixity :: Op -> Fixity
 fixity op = case description op of (_op, fx, _sym) -> fx
 
--- | Get the symbol, i.e. its literal string, of an operator.
+-- | Get the symbol (i.e. its literal string) of an operator.
 opSymbol :: Op -> String
 opSymbol op = case description op of (_op, _fx, sym) -> sym
+
+-- | Get a number representing the precedence of an operator.
+precedence :: Op -> Int
+-- Same justification for 'fromJust' as before.
+precedence op = fromJust
+    $ findMap (check op)
+    $ concat
+    $ zipWith (fmap . (,)) [0..] operators
+    where
+    check op (prec, (op', _, _)) = if op' == op then Just prec else Nothing
+    findMap f = getFirst . foldMap (First . f)
 
 -- TODO: Maybe add all constructors to `Op` and add a newtype.
 data AssignOp
