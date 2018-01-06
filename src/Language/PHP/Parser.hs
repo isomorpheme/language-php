@@ -209,10 +209,10 @@ higherOpExpr :: Parser Expr
 higherOpExpr = Expr.makeExprParser term $ makeOps higherOperators
 
 makeOps :: OperatorTable -> [[Expr.Operator Parser Expr]]
-makeOps = fmap $ \(fx, ops) -> fmap (makeOperator fx) ops
+makeOps = fmap (fmap makeOperator)
     where
     -- TODO: Make this whole thing less messy
-    makeOperator fixity (op, sym) =
+    makeOperator (op, fixity, sym) =
         case fixity of
             InfixLeft -> Expr.InfixL $ binOp op sym
             InfixRight -> Expr.InfixR $ binOp op sym

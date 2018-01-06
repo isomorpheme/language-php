@@ -10,7 +10,7 @@ import Language.PHP.AST.Ops
 -- | Generate an identifier that looks like a variable or member name, i.e.
 -- | starts with a lowercase character.
 genVarIdent :: MonadGen m => m Ident
-genVarIdent = (:) <$> Gen.lower <*> Gen.string (Range.singleton 3) Gen.alphaNum
+genVarIdent = (:) <$> Gen.lower <*> Gen.string (Range.singleton 2) Gen.alphaNum
 
 -- | Generate an identifier that looks more like a constant, i.e. consists only
 -- | of uppercase characters.

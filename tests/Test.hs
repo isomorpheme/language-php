@@ -16,7 +16,7 @@ tests :: TestTree
 tests = testGroup "Tests"
     [ HH.testProperty "expressions prettify without errors" $ property $ do
         expr <- forAll genExpr
-        void $ eval $ pretty expr
+        void $ eval $ toString expr
     , HH.testProperty "parsing/printing expressions roundtrips" $ property $ do
         expr <- forAll genExpr
         tripping expr toString parsePretty

@@ -1,6 +1,7 @@
 module Language.PHP.AST.Ops where
 
-import Data.List (union)
+import Data.List (find, union)
+import Data.Maybe (fromJust)
 import Data.Semigroup ((<>))
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -129,10 +130,24 @@ data Fixity
     | Postfix
     deriving (Bounded, Enum, Eq, Show)
 
-type OperatorTable = [(Fixity, [(Op, String)])]
+-- | The associativity of an operator.
+data Associativity
+    = AssocLeft
+    | AssocRight
+    | AssocNone
+
+associativity :: Fixity -> Associativity
+associativity InfixLeft = AssocLeft
+associativity InfixRight = AssocRight
+associativity InfixNone = AssocNone
+associativity Prefix = AssocNone
+associativity Postfix = AssocNone
+
+type OpDescription = (Op, Fixity, String)
+type OperatorTable = [[OpDescription]]
 
 -- | For notational convenience.
-(>:) = (,)
+(>:) fx = fmap $ \(op, sym) -> (op, fx, sym)
 
 -- | For notational convenience.
 (=:) = (,)
@@ -222,12 +237,28 @@ lowerOperators =
 operators :: OperatorTable
 operators = higherOperators <> lowerOperators
 
+-- | Every character which appears in an operator at least once.
 operatorChars :: Set Char
 operatorChars = Set.union opChars assignChars
     where
-    opChars = Set.fromList $ operators >>= snd >>= snd
+    opChars = Set.fromList $ operators >>= id >>= \(_op, _fx, sym) -> sym
     assignChars = Set.fromList $ assignOps >>= snd
 
+-- | Get the description of an operator, i.e. its value, fixity and literal symbol.
+description :: Op -> OpDescription
+-- 'fromJust' can be used here, since every operator *should* have a defined
+-- fixity and symbol.
+description op = fromJust $ find (\(op', _, _) -> op == op') $ concat operators
+
+-- | Get the fixity of an operator.
+fixity :: Op -> Fixity
+fixity op = case description op of (_op, fx, _sym) -> fx
+
+-- | Get the symbol, i.e. its literal string, of an operator.
+opSymbol :: Op -> String
+opSymbol op = case description op of (_op, _fx, sym) -> sym
+
+-- TODO: Maybe add all constructors to `Op` and add a newtype.
 data AssignOp
     = Assign -- =
     | AddAssign -- +=
