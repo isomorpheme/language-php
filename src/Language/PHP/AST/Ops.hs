@@ -1,5 +1,7 @@
 module Language.PHP.AST.Ops where
 
+import Control.Monad (guard)
+import Data.Char (isAlpha)
 import Data.Foldable (foldMap)
 import Data.List (find, union)
 import Data.Maybe (fromJust)
@@ -240,12 +242,13 @@ operators :: OperatorTable
 operators = higherOperators <> lowerOperators
 
 -- | Every character which appears in an operator at least once.
--- TODO: Exclude `instanceof` from this, because otherwise e.g. `-foo` won't
--- parse. (Which is probably somewhat rare, but still.)
 operatorChars :: Set Char
 operatorChars = Set.union opChars assignChars
     where
-    opChars = Set.fromList $ operators >>= id >>= \(_op, _fx, sym) -> sym
+    opChars = Set.fromList $ do
+        (_, _, sym) <- concat $ operators
+        guard $ not $ any isAlpha sym
+        sym
     assignChars = Set.fromList $ assignOps >>= snd
 
 -- | Get the description of an operator, i.e. its value, fixity and literal symbol.
