@@ -119,10 +119,10 @@ prettyExpr (Literal l) = pretty l
 prettyExpr (Var v) = pretty v
 prettyExpr (Const i) = pretty i
 prettyExpr (BinOp (MkBinOp op) lhs rhs) =
-    hsep [prettyPrec op AssocLeft lhs, pretty op, prettyPrec op AssocLeft rhs]
+    hsep [prettyPrec op AssocLeft lhs, pretty op, prettyPrec op AssocRight rhs]
 prettyExpr (UnOp (MkUnOp op) expr) =
     hcat [pretty op, prettyPrec op AssocNone expr]
-prettyExpr (IncDec fixity delta var) =
+prettyExpr (IncDec fixity delta var) = parens $
     let
         op = case delta of
             Increment -> "++"
@@ -131,7 +131,7 @@ prettyExpr (IncDec fixity delta var) =
         case fixity of
             Prefix -> op <> pretty var
             Postfix -> pretty var <> op
-prettyExpr (Assignment ass) = pretty ass
+prettyExpr (Assignment ass) = parens $ pretty ass
 prettyExpr (Conditional c t f) =
     parens $ hsep [subExpr c, "?", fold $ subExpr <$> t, ":", subExpr f]
     where
@@ -150,10 +150,10 @@ prettyExpr _ = error "unimplemented"
 prettyPrec :: Op -> Associativity -> Expr -> Doc
 prettyPrec prev assoc = \case
     BinOp (MkBinOp op) lhs rhs ->
-        parenthesize (needsParens prev op assoc) $
-            hsep [prettyPrec op AssocLeft lhs, pretty op, prettyPrec op AssocLeft rhs]
+        parenthesize (needsParens op prev assoc) $
+            hsep [prettyPrec op AssocLeft lhs, pretty op, prettyPrec op AssocRight rhs]
     UnOp (MkUnOp op) expr ->
-        parenthesize (needsParens prev op assoc) $
+        parenthesize (needsParens op prev assoc) $
             -- Note: we always prettify as a prefix operator, because
             -- there are no 'plain' postfix unops; `++` and `--` only
             -- work on variables, and are a different type.

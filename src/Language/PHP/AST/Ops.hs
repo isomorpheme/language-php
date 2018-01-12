@@ -267,13 +267,15 @@ opSymbol op = case description op of (_op, _fx, sym) -> sym
 
 -- | Get a number representing the precedence of an operator.
 precedence :: Op -> Int
--- Same justification for 'fromJust' as before.
-precedence op = fromJust
+precedence op = (maxPrec -)
+    -- Same justification for 'fromJust' as before.
+    $ fromJust
     $ findMap (check op)
     $ concat
     $ zipWith (fmap . (,)) [0..] operators
     where
-    check op (prec, (op', _, _)) = if op' == op then Just prec else Nothing
+    maxPrec = length operators - 1
+    check op (prec, (op', _, _)) = prec <$ guard (op' == op)
     findMap f = getFirst . foldMap (First . f)
 
 -- TODO: Maybe add all constructors to `Op` and add a newtype.
