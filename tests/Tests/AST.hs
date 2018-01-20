@@ -15,7 +15,7 @@ genVarIdent = (:) <$> Gen.lower <*> Gen.string (Range.singleton 2) Gen.alphaNum
 -- | Generate an identifier that looks more like a constant, i.e. consists only
 -- | of uppercase characters.
 genConstIdent :: MonadGen m => m Ident
-genConstIdent = Gen.string (Range.singleton 5) Gen.upper
+genConstIdent = Gen.string (Range.linear 4 10) Gen.upper
 
 genLiteral :: MonadGen m => m Literal
 genLiteral = Gen.choice
@@ -38,6 +38,12 @@ genVar = Gen.recursive Gen.choice
     [ Gen.subterm genVar VarVar
     ]
 
+genVarExpr :: MonadGen m => m Expr
+genVarExpr = Gen.shrink shrinker $ Var <$> genVar
+    where
+    shrinker (Var (ExprVar expr)) = [expr]
+    shrinker _ = []
+
 genAssignOp :: MonadGen m => m AssignOp
 genAssignOp = Gen.enumBounded
 
@@ -46,6 +52,14 @@ genAssignment = Gen.choice
     [ ByValue <$> genAssignOp <*> genVar <*> genExpr
     , ByRef <$> genVar <*> genVar
     ]
+
+genAssignmentExpr :: MonadGen m => m Expr
+genAssignmentExpr = Gen.shrink shrinker $ Assignment <$> genAssignment
+    where
+    shrinker (Assignment a) = case a of
+        ByValue _op var expr -> [Var var, expr]
+        ByRef var ref -> [Var var, Var ref]
+    shrinker _ = []
 
 genBinOp :: MonadGen m => m BinOp
 genBinOp = MkBinOp <$> Gen.element binOps
@@ -63,13 +77,19 @@ genFixity' = Gen.element [Prefix, Postfix]
 genDelta :: MonadGen m => m Delta
 genDelta = Gen.enumBounded
 
+genIncDecExpr :: MonadGen m => m Expr
+genIncDecExpr = Gen.shrink shrinker $ IncDec <$> genFixity' <*> genDelta <*> genVar
+    where
+    shrinker (IncDec _fx _d var) = [Var var]
+    shrinker _ = []
+
 genExpr :: MonadGen m => m Expr
 genExpr = Gen.recursive Gen.choice
-    [ Var <$> genVar
+    [ Const <$> genConstIdent
     , Literal <$> genLiteral
-    , Const <$> genConstIdent
-    , Assignment <$> genAssignment
-    , IncDec <$> genFixity' <*> genDelta <*> genVar
+    , genAssignmentExpr
+    , genVarExpr
+    , genIncDecExpr
     ]
     [ Gen.subtermM2 genExpr genExpr $
         \lhs rhs -> BinOp <$> genBinOp <*> pure lhs <*> pure rhs
