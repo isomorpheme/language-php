@@ -84,19 +84,14 @@ needsParens :: Op -> Op -> Associativity -> Bool
 -- It is easier to check whether parens would be redundant, so we check
 -- the negation.
 needsParens inner outer side = not $
-    if precedence inner > precedence outer
+    -- TODO: This is ugly stuff.
+    if inner `elem` binOps && outer `elem` binOps && precedence inner > precedence outer
     -- If the inner operator has greater precedence than the outer
     -- operator, we definitely don't need parens.
     then True
     -- Otherwise, it depends on the fixity of the inner operator, and
     -- on what side of the outer operator we are.
     else case (fixity inner, side) of
-        -- When there is a unary operator inbetween its subexpression
-        -- and the outer operator, parens are redundant.
-        -- E.g., `1 + -2`. (Note: there actually are no postfix unops.)
-        (Postfix, AssocLeft) -> True
-        (Prefix, AssocRight) -> True
-
         -- Chaining equally precedent operators with the same
         -- associativity does not need parens.
         -- E.g. `1 + 2 - 3` = `(1 + 2) - 3`.
@@ -108,11 +103,13 @@ needsParens inner outer side = not $
             precedence inner == precedence outer
             && fixity outer == InfixRight
 
-        -- E.g. `@-2`.
-        --(_, AssocNone) -> fixity inner == fixity outer
-
         -- We need parens in any other case.
         _ -> False
+
+        -- Note that we do not do anything with unary operators. This is because
+        -- Megaparsec currently has some issues with parsing them in some cases.
+        -- So we always parenthesize them.
+        -- See: https://github.com/mrkkrp/megaparsec/issues/132
 
 prettyExpr :: Expr -> Doc
 prettyExpr (Literal l) = pretty l
