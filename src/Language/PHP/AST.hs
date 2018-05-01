@@ -1,4 +1,12 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+
 module Language.PHP.AST where
+
+import Data.Functor.Foldable.TH (makeBaseFunctor)
 
 import Language.PHP.AST.Ops
 
@@ -41,10 +49,12 @@ data Expr
     | UnOp UnOp Expr
     | IncDec Fixity Delta Var
     | Assignment Assignment
-
-    -- Compound
     | Conditional Expr (Maybe Expr) Expr
+
+    -- | Call Callable [Expr]
     deriving (Eq, Show)
+
+$(makeBaseFunctor ''Expr)
 
 -- | Give the operator used in an expression, if present.
 operatorOf :: Expr -> Maybe Op

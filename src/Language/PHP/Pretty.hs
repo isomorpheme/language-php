@@ -112,37 +112,59 @@ needsParens inner outer side = not $
         -- See: https://github.com/mrkkrp/megaparsec/issues/132
 
 prettyExpr :: Expr -> Doc
-prettyExpr (Literal l) = pretty l
-prettyExpr (Var v) = pretty v
-prettyExpr (Const i) = pretty i
-prettyExpr (BinOp (MkBinOp op) lhs rhs) =
-    hsep [prettyPrec op AssocLeft lhs, pretty op, prettyPrec op AssocRight rhs]
-prettyExpr (UnOp (MkUnOp op) expr) =
-    hcat [pretty op, prettyPrec op AssocNone expr]
-prettyExpr (IncDec fixity delta var) = parens $
-    let
-        op = case delta of
-            Increment -> "++"
-            Decrement -> "--"
-    in
-        case fixity of
-            Prefix -> op <> pretty var
-            Postfix -> pretty var <> op
-prettyExpr (Assignment ass) = parens $ pretty ass
-prettyExpr (Conditional c t f) =
-    parens $ hsep [subExpr c, "?", fold $ subExpr <$> t, ":", subExpr f]
+prettyExpr = para go
     where
-    subExpr expr =
-        let
-            -- We (ab)use the 'Foldable' instance of 'Maybe' here, so that
-            -- @Nothing@ maps to @False@, and @Just b@ to @b@.
-            lower = or $ do
-                op <- operatorOf expr
-                pure $ any (\(op', _, _) -> op == op') $ concat lowerOperators
-        in
-            parenthesize lower $ prettyExpr expr
+    go (LiteralF l) = pretty l
+    go (VarF v) = pretty v
+    go (ConstF i) = pretty i
+    go (BinOpF op (_, lhs) (_, rhs)) = hsep [lhs, op, rhs]
+    go (UnOpF op (_, expr)) = hcat [pretty op, expr]
+    go (AssignmentF a) = parens $ pretty a
+    go (ConditionalF (c, c') (t, t') (f, f')) =
+        parens $ hsep [subExpr c c', "?", fold $ subExpr <$> t <*> t', ":", subExpr f f']
+        where
+        subExpr expr expr' =
+            let
+                -- We (ab)use the 'Foldable' instance of 'Maybe' here, so that
+                -- @Nothing@ maps to @False@, and @Just b@ to @b@.
+                lower = or $ do
+                    op <- operatorOf expr
+                    pure $ any (\(op', _, _) -> op == op') $ concat lowerOperators
+            in
+                parenthesize lower expr'
+    go _ = error "unimplemented"
 
-prettyExpr _ = error "unimplemented"
+-- prettyExpr (Literal l) = pretty l
+-- prettyExpr (Var v) = pretty v
+-- prettyExpr (Const i) = pretty i
+-- prettyExpr (BinOp (MkBinOp op) lhs rhs) =
+--     hsep [prettyPrec op AssocLeft lhs, pretty op, prettyPrec op AssocRight rhs]
+-- prettyExpr (UnOp (MkUnOp op) expr) =
+--     hcat [pretty op, prettyPrec op AssocNone expr]
+-- prettyExpr (IncDec fixity delta var) = parens $
+--     let
+--         op = case delta of
+--             Increment -> "++"
+--             Decrement -> "--"
+--     in
+--         case fixity of
+--             Prefix -> op <> pretty var
+--             Postfix -> pretty var <> op
+-- prettyExpr (Assignment ass) = parens $ pretty ass
+-- prettyExpr (Conditional c t f) =
+--     parens $ hsep [subExpr c, "?", fold $ subExpr <$> t, ":", subExpr f]
+--     where
+--     subExpr expr =
+--         let
+--             -- We (ab)use the 'Foldable' instance of 'Maybe' here, so that
+--             -- @Nothing@ maps to @False@, and @Just b@ to @b@.
+--             lower = or $ do
+--                 op <- operatorOf expr
+--                 pure $ any (\(op', _, _) -> op == op') $ concat lowerOperators
+--         in
+--             parenthesize lower $ prettyExpr expr
+
+-- prettyExpr _ = error "unimplemented"
 
 prettyPrec :: Op -> Associativity -> Expr -> Doc
 prettyPrec prev assoc = \case
